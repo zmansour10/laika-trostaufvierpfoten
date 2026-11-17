@@ -14,6 +14,7 @@ from unittest.mock import patch
 from streamlit.testing.v1 import AppTest
 
 import generate_letter as generator
+import configuration
 import letter_storage
 from letter_purposes import PURPOSE_GUIDES, purpose_guide
 import studio
@@ -183,7 +184,9 @@ class WorkspaceTests(unittest.TestCase):
         self.stack.enter_context(patch.object(letter_storage, "LETTERS_PATH", self.data_path / "letters"))
         self.stack.enter_context(patch.object(studio, "load_sources", side_effect=lambda: generator.load_sources(self.data_path)))
         self.config = {"MyKey": "access-key-ä"}
-        self.stack.enter_context(patch("dotenv.dotenv_values", return_value=self.config))
+        self.stack.enter_context(patch.object(configuration, "dotenv_values", return_value=self.config))
+        self.stack.enter_context(patch.object(configuration.st, "secrets", {}))
+        self.stack.enter_context(patch.dict(configuration.os.environ, {"MyKey": ""}))
         self.stack.enter_context(patch.object(studio, "provider_key", return_value="fake-provider-key"))
         self.generate = self.stack.enter_context(patch.object(studio, "generate_letter", return_value=generator.GeneratedLetter(
             "Betreff: Ein neuer Brief\n\nBitte um Zuweisung von Bußgeldauflagen für lokale Tiergestützte Trauerbegleitung\n"
@@ -307,6 +310,21 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(len(self.app.selectbox), 0)
         self.assertNotIn("draft_text", self.app.session_state)
         self.assertNotIn("auth_proof", self.app.session_state)
+
+    def test_streamlit_cloud_secret_unlocks_without_a_local_env_file(self):
+        self.config.clear()
+        self.app.secrets["MyKey"] = "cloud-access-ä"
+        self.app.run()
+        self.assertFalse(self.app.exception)
+        self.assertFalse(self.app.button(key="validate_button").disabled)
+        self.app.text_area(key="key_input").input("cloud-access-ä")
+        self.app.button(key="validate_button").click().run()
+        self.assertFalse(self.app.exception)
+        self.assertEqual(self.app.selectbox(key="brief_purpose").value, PURPOSE_GUIDES[0].label)
+        self.app.secrets["MyKey"] = "cloud-key-rotated"
+        self.app.run()
+        self.assertNotIn("auth_proof", self.app.session_state)
+        self.assertEqual(len(self.app.selectbox), 0)
 
     def test_generation_failure_preserves_previous_draft(self):
         self.unlock()

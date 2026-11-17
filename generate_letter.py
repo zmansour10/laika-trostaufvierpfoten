@@ -13,7 +13,6 @@ from datetime import date, datetime
 import hashlib
 import json
 import math
-import os
 from pathlib import Path
 import re
 import sys
@@ -21,13 +20,11 @@ from threading import Lock
 import time
 from zoneinfo import ZoneInfo
 
-from dotenv import dotenv_values
-
+from configuration import read_setting
 from letter_purposes import PURPOSE_LABELS, purpose_guide
 
 
 ROOT = Path(__file__).resolve().parent
-ENV_PATH = ROOT / ".env"
 DATA_PATH = ROOT / "data"
 MAX_CONTEXT_CHARACTERS = 300_000
 
@@ -104,14 +101,10 @@ def model_option(model_id: str) -> ModelOption:
 
 
 def provider_key(provider: str) -> str | None:
-    """Deployment environment wins; local .env is read again on each request."""
-    values = dotenv_values(ENV_PATH)
-    names = ("GEMINI_API_KEY", "GOOGLE_API_KEY") if provider == "Gemini" else ("OPENAI_API_KEY",)
-    for name in names:
-        value = os.environ.get(name) or values.get(name)
-        if value and value.strip():
-            return value.strip()
-    return None
+    """Use the same cloud/local configuration sources as workspace authentication."""
+    if provider == "Gemini":
+        return read_setting("GEMINI_API_KEY", aliases=("GOOGLE_API_KEY",), strip=True)
+    return read_setting("OPENAI_API_KEY", strip=True)
 
 
 def load_sources(data_dir: Path = DATA_PATH) -> SourceBundle:
@@ -336,7 +329,7 @@ def generate_letter(
     key = provider_key(model.provider)
     if not key:
         variable = "GEMINI_API_KEY" if model.provider == "Gemini" else "OPENAI_API_KEY"
-        raise GenerationError(f"Add {variable} to the server's .env file to use {model.provider}.")
+        raise GenerationError(f"Set {variable} in Streamlit Settings → Secrets, an environment variable, or the local .env file to use {model.provider}.")
     sources = sources if sources is not None else load_sources(data_dir)
     prompt = build_prompt(sources, brief)
     _limiter.reserve(model, key)

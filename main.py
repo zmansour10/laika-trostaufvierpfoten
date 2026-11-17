@@ -1,21 +1,17 @@
-"""LAIKA letter studio, protected by the key in the local .env file."""
+"""LAIKA letter studio, protected by the configured MyKey access key."""
 
 import hashlib
 import hmac
-from pathlib import Path
 
 import streamlit as st
-from dotenv import dotenv_values
 
+from configuration import read_setting
 from studio import render_studio
 
 
-ENV_PATH = Path(__file__).resolve().parent / ".env"
-
-
 def configured_key() -> str | None:
-    """Read the configuration without exposing it or changing the environment."""
-    return dotenv_values(ENV_PATH).get("MyKey")
+    """Support Streamlit Cloud Secrets and local configuration without caching keys."""
+    return read_setting("MyKey")
 
 
 def clear_result() -> None:
@@ -221,7 +217,7 @@ with form:
 
         result = st.session_state.get("validation_result")
         if not ready or result == "unconfigured":
-            st.error("Key verification is unavailable. Set MyKey in the application's .env file to enable it.")
+            st.error("Key verification is unavailable. Set MyKey in Streamlit Settings → Secrets, an environment variable, or the local .env file.")
         elif result == "valid":
             st.success("Key verified. Your key matches successfully.", icon="✅")
         elif result == "invalid":

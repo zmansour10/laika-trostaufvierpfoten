@@ -20,6 +20,19 @@ OPENAI_API_KEY=your-openai-api-key
 
 `MyKey` is the workspace access key; it is separate from the AI providers' API keys. Comparison is exact and case-sensitive, including spaces and line breaks. Successful validation unlocks the workspace and clears the entered key. **Lock workspace** clears the session's draft and inputs. Changing or removing `MyKey` revokes existing access on the next interaction and clears the draft. Configuration is reread without restarting. Missing API keys disable generation for that provider.
 
+## Streamlit Community Cloud
+
+In the app's **Settings → Secrets**, use top-level, case-sensitive TOML keys (quoted strings, without a section header):
+
+```toml
+MyKey = "your-workspace-access-key"
+GEMINI_API_KEY = "your-gemini-api-key"
+# Optional:
+OPENAI_API_KEY = "your-openai-api-key"
+```
+
+Both workspace validation and AI generation read configuration in this order: **Streamlit Secrets → environment variables → local `.env`**. `GOOGLE_API_KEY` is also accepted for Gemini. No `.env` file is needed on the deployed app. For local Streamlit Secrets, use `.streamlit/secrets.toml`, which is ignored by Git. Never commit real credentials. See [Streamlit's secrets documentation](https://docs.streamlit.io/develop/concepts/connections/secrets-management) for the supported format and restart requirements.
+
 ## Reference library and drafting
 
 - Put historical letters in `data/letters/` and association information in `data/website_info/`.

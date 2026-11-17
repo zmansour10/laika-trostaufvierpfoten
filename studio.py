@@ -166,7 +166,7 @@ def render_studio(authenticated: Callable[[], bool], logout: Callable[[], None])
             has_key = bool(provider_key(model.provider))
             if not has_key:
                 variable = "GEMINI_API_KEY" if model.provider == "Gemini" else "OPENAI_API_KEY"
-                st.info(f"Add {variable} to the server’s .env file to enable {model.provider} generation.")
+                st.info(f"Set {variable} in Streamlit Settings → Secrets, an environment variable, or the local .env file to enable {model.provider} generation.")
             else:
                 st.caption(f"{model.provider} connected · No web search or external tools")
             if model.rpm:
